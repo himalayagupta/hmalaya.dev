@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building Multimodal AI Agents with Java</title>
+<style>
+    :root {
+        --bg: #0a0a0a;
+        --card: #111317;
+        --card-2: #161a20;
+        --border: #262b33;
+        --violet: #8b5cf6;
+        --violet-light: #a78bfa;
+        --green: #4ade80;
+        --yellow: #facc15;
+        --red: #f87171;
+        --text: #e5e7eb;
+        --muted: #6b7280;
+        --muted-2: #9ca3af;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+        margin: 0; padding: 0; height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+        overflow: hidden;
+    }
+    #deck { position: relative; width: 100vw; height: 100vh; }
+    .slide {
+        position: absolute; inset: 0;
+        display: none;
+        flex-direction: column;
+        padding: 64px 90px;
+        opacity: 0;
+        transition: opacity .25s ease;
+    }
+    .slide.active { display: flex; opacity: 1; }
+
+    /* ---- Header chip per slide ---- */
+    .kicker {
+        font-size: 13px; letter-spacing: .2em; text-transform: uppercase;
+        color: var(--violet-light); font-weight: 600; margin-bottom: 14px;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .kicker .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--violet-light); }
+
+    h1 { font-size: 52px; margin: 0 0 8px; color: #fff; line-height: 1.15; font-weight: 800; }
+    h2 { font-size: 38px; margin: 0 0 28px; color: #fff; font-weight: 800; }
+    .subtitle { font-size: 20px; color: var(--muted-2); margin-bottom: 6px; }
+
+    .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+    .body.top { justify-content: flex-start; }
+
+    ul.points { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 18px; }
+    ul.points li {
+        font-size: 24px; color: var(--text); display: flex; gap: 16px; align-items: flex-start;
+        line-height: 1.4;
+    }
+    ul.points li .bullet { color: var(--violet-light); font-size: 20px; margin-top: 4px; }
+    ul.points li b { color: #fff; }
+    ul.points li .sub { color: var(--muted-2); font-size: 18px; display: block; margin-top: 4px; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; align-items: stretch; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; flex: 1; }
+
+    .card {
+        background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+        padding: 28px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .card h3 { margin: 0 0 6px; font-size: 20px; color: #fff; }
+    .card p, .card li { font-size: 16px; color: var(--muted-2); line-height: 1.55; }
+    .card.green { border-color: #16653488; background: linear-gradient(135deg, #052e1622, #14532d11); }
+    .card.red { border-color: #dc262688; background: linear-gradient(135deg, #1c050522, #450a0a11); }
+    .card.violet { border-color: #8b5cf688; background: linear-gradient(135deg, #2e1065aa11, #1e1b4baa11); }
+
+    code, .code {
+        font-family: inherit; background: #1a1d24; border: 1px solid var(--border);
+        border-radius: 8px; padding: 2px 8px; color: var(--green); font-size: 0.9em;
+    }
+    pre.code-block {
+        background: #0d0f13; border: 1px solid var(--border); border-radius: 14px;
+        padding: 22px 26px; font-size: 17px; line-height: 1.6; overflow: auto;
+        color: #d1d5db; flex: 1; margin: 0;
+    }
+    pre.code-block .kw { color: #a78bfa; }
+    pre.code-block .str { color: #4ade80; }
+    pre.code-block .com { color: #6b7280; font-style: italic; }
+    pre.code-block .typ { color: #60a5fa; }
+    pre.code-block .met { color: #facc15; }
+
+    /* ---- Special slide types ---- */
+    .slide.code-switch { align-items: center; justify-content: center; text-align: center; }
+    .slide.code-switch .badge {
+        font-size: 15px; letter-spacing: .25em; text-transform: uppercase;
+        background: #1a1320; border: 1px solid #4c1d95; color: var(--violet-light);
+        padding: 10px 24px; border-radius: 999px; margin-bottom: 28px; font-weight: 700;
+    }
+    .slide.code-switch .icon { font-size: 90px; margin-bottom: 10px; }
+    .slide.code-switch h1 { font-size: 46px; }
+    .slide.code-switch .file-path {
+        margin-top: 22px; font-size: 20px; color: var(--green);
+        background: #0d0f13; border: 1px solid var(--border); border-radius: 10px;
+        padding: 12px 22px; display: inline-block;
+    }
+    .slide.code-switch .hint { color: var(--muted-2); font-size: 18px; margin-top: 18px; max-width: 700px; }
+
+    .slide.demo { align-items: center; justify-content: center; text-align: center; }
+    .slide.demo .badge {
+        font-size: 15px; letter-spacing: .25em; text-transform: uppercase;
+        background: #052e16; border: 1px solid #16653488; color: var(--green);
+        padding: 10px 24px; border-radius: 999px; margin-bottom: 28px; font-weight: 700;
+    }
+
+    .slide.title { align-items: center; justify-content: center; text-align: center; }
+    .slide.title h1 { font-size: 64px; }
+    .slide.title .emoji { font-size: 70px; margin-bottom: 18px; }
+
+    .footer-meta {
+        position: absolute; bottom: 28px; left: 90px; right: 90px;
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 13px; color: var(--muted);
+    }
+    .progress-track { position: absolute; top: 0; left: 0; height: 3px; background: var(--violet); transition: width .25s; z-index: 10; }
+
+    .nav-hint { display: flex; gap: 18px; }
+    .nav-hint kbd {
+        background: var(--card-2); border: 1px solid var(--border); border-radius: 6px;
+        padding: 2px 8px; font-size: 12px; color: var(--muted-2);
+    }
+
+    /* slide counter top right */
+    #counter {
+        position: fixed; top: 24px; right: 32px; font-size: 13px; color: var(--muted); z-index: 20;
+    }
+
+    .two-col-list { columns: 2; column-gap: 40px; }
+    .two-col-list li { margin-bottom: 14px; }
+
+    table.compare { width: 100%; border-collapse: collapse; font-size: 17px; }
+    table.compare th, table.compare td { border: 1px solid var(--border); padding: 12px 16px; text-align: left; }
+    table.compare th { color: #fff; background: var(--card-2); font-size: 14px; text-transform: uppercase; letter-spacing: .05em; }
+    table.compare td { color: var(--muted-2); }
+    table.compare td.yes { color: var(--green); }
+    table.compare td.no { color: var(--red); }
+
+    .arch-row { display: flex; align-items: center; justify-content: center; gap: 14px; flex: 1; }
+    .arch-box {
+        background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+        padding: 22px 26px; text-align: center; min-width: 170px;
+    }
+    .arch-box .label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+    .arch-box .name { font-size: 18px; color: #fff; font-weight: 700; }
+    .arch-box .meta { font-size: 13px; color: var(--muted-2); margin-top: 4px; }
+    .arch-box.local { border-color: #16653488; }
+    .arch-box.cloud { border-color: #8b5cf688; }
+    .arch-arrow { color: var(--muted); font-size: 26px; }
+
+    /* ---- Layered production architecture diagram ---- */
+    .stack { display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: center; }
+    .stack-row { display: flex; justify-content: center; gap: 16px; }
+    .stack-arrow { text-align: center; color: var(--muted); font-size: 20px; line-height: 1; margin: 0; }
+    .svc-box {
+        background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+        padding: 14px 20px; text-align: center; min-width: 150px;
+    }
+    .svc-box .name { font-size: 15px; color: #fff; font-weight: 700; }
+    .svc-box .meta { font-size: 11.5px; color: var(--muted-2); margin-top: 3px; }
+    .svc-box.edge { border-color: #ca8a0488; }
+    .svc-box.compute { border-color: #8b5cf688; }
+    .svc-box.data { border-color: #16653488; }
+    .svc-box.secret { border-color: #dc262688; }
+    .svc-box.ext { border-color: #2563eb88; border-style: dashed; }
+    .tls-tag {
+        font-size: 11px; color: var(--green); background: #052e16; border: 1px solid #16653488;
+        border-radius: 999px; padding: 2px 10px; display: inline-block;
+    }
+
+    .bug-card { border-left: 4px solid var(--red); }
+    .bug-card .fix { color: var(--green); margin-top: 8px; }
+    .bug-card .fix b { color: var(--green); }
+
+    .stat-big { font-size: 56px; font-weight: 800; color: #fff; }
+    .stat-label { font-size: 14px; color: var(--muted-2); text-transform: uppercase; letter-spacing: .08em; }
+
+    /* ---- Escalation ladder (tier cards) ---- */
+    .ladder { display: flex; flex-direction: column; gap: 14px; flex: 1; justify-content: center; }
+    .tier-card {
+        display: flex; align-items: center; gap: 24px;
+        background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+        padding: 20px 28px;
+    }
+    .tier-card .tier-num {
+        font-size: 28px; font-weight: 800; color: var(--muted); min-width: 38px; text-align: center;
+    }
+    .tier-card.tier-1 { border-left: 4px solid #60a5fa; }
+    .tier-card.tier-2 { border-left: 4px solid #facc15; }
+    .tier-card.tier-3 { border-left: 4px solid var(--violet); }
+    .tier-card .tier-title { font-size: 19px; color: #fff; font-weight: 700; margin-bottom: 4px; }
+    .tier-card .tier-trigger { font-size: 15px; color: var(--muted-2); margin-bottom: 6px; }
+    .tier-card .tier-example {
+        font-size: 13.5px; color: var(--green); background: #052e1655;
+        border: 1px solid #16653455; border-radius: 8px; padding: 4px 10px; display: inline-block;
+    }
+    .ladder-arrow { text-align: center; color: var(--muted); font-size: 18px; }
+
+    /* ---- Checklist grid (2x2 criteria) ---- */
+    .checklist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; flex: 1; }
+    .check-card {
+        background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+        padding: 36px 40px;
+        display: flex; flex-direction: column; justify-content: center;
+    }
+    .check-card .q { font-size: 26px; color: #fff; font-weight: 700; margin-bottom: 16px; }
+    .check-card .a { font-size: 19px; color: var(--muted-2); line-height: 1.6; }
+
+    .card-img {
+        width: 100%; aspect-ratio: 16/9; object-fit: cover;
+        border-radius: 12px; border: 1px solid var(--border);
+        margin-bottom: 6px;
+    }
+</style>
+</head>
+<body>
+
+<div id="counter"></div>
+<div class="progress-track" id="progressTrack"></div>
+
+<div id="deck">
+
+    <!-- 1. TITLE -->
+    <section class="slide title">
+        <div class="emoji">👟</div>
+        <h1>Building Multimodal<br>AI Agents with Java</h1>
+        <p class="subtitle" style="margin-top:18px;">SneakerLens — an AI sneaker authenticator built live</p>
+        <p style="color:var(--muted); margin-top:40px;">Java Meetup · June 2026</p>
+    </section>
+
+    <!-- 2. AGENDA -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Agenda</div>
+        <h2>What we'll cover in the next hour</h2>
+        <div class="body top">
+            <ul class="points">
+                <li><span class="bullet">01</span><div><b>Intro</b><span class="sub">Why sneaker authentication, why this matters</span></div></li>
+                <li><span class="bullet">02</span><div><b>Agentic · Multimodal · Hybrid</b><span class="sub">What these words actually mean, when to use each, when to avoid</span></div></li>
+                <li><span class="bullet">03</span><div><b>Demo architecture</b><span class="sub">The 3-step pipeline: local guardrail → identify → authenticate</span></div></li>
+                <li><span class="bullet">04</span><div><b>Code walkthrough</b><span class="sub">Switching to VS Code — the real implementation</span></div></li>
+                <li><span class="bullet">05</span><div><b>Live demo</b><span class="sub">Upload real sneakers, watch the agent work</span></div></li>
+                <li><span class="bullet">06</span><div><b>Lessons learned</b><span class="sub">The real bugs we hit building this — more useful than a clean happy path</span></div></li>
+                <li><span class="bullet">07</span><div><b>Q&amp;A</b></div></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 3. INTRO HOOK -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Intro</div>
+        <h2>The problem: sneaker fakes are everywhere</h2>
+        <div class="body">
+            <ul class="points">
+                <li><span class="bullet">→</span><div>Counterfeit sneaker resale is a multi-billion dollar problem globally — and growing fast in the Indian resale market</div></li>
+                <li><span class="bullet">→</span><div>Authentication today requires <b>human experts</b> who look at stitching, fonts, materials — knowledge that took years to build</div></li>
+                <li><span class="bullet">→</span><div>What if a multimodal LLM could do a first-pass check, instantly, from a phone photo?</div></li>
+                <li><span class="bullet">→</span><div>That's <b>SneakerLens</b> — and building it taught me more about agentic system design than any tutorial</div></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 3b. OLX SCENARIO -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Intro</div>
+        <h2>A familiar scenario: buying sneakers off OLX</h2>
+        <div class="body">
+            <div class="grid2">
+                <div class="card red">
+                    <img class="card-img" src="assets/manual-inspection.jpeg" alt="Manual sneaker inspection — squinting at photos, checking forums, gut feeling">
+                    <h3>😬 Today — manual inspection</h3>
+                    <ul style="padding-left: 18px; line-height: 1.6;">
+                        <li>Zoom into seller photos, squint at the logo font</li>
+                        <li>Cross-check a forum post or "spot the fake" video</li>
+                        <li><b>Result:</b> gut feeling — inconsistent, unexplainable</li>
+                    </ul>
+                </div>
+                <div class="card green">
+                    <img class="card-img" src="assets/agent-pipeline.png" alt="Agent pipeline — local check, identify, re-ground, structured verdict">
+                    <h3>✅ As an agent — same photos</h3>
+                    <ul style="padding-left: 18px; line-height: 1.6;">
+                        <li><b>Step 0:</b> local model confirms it's actually footwear</li>
+                        <li><b>Step 1 → 2:</b> identify the model, then re-ground on <i>that model's</i> specific tells</li>
+                        <li><b>Result:</b> structured verdict + evidence — every time, the same way</li>
+                    </ul>
+                </div>
+            </div>
+            <p style="text-align:center; color:var(--muted-2); margin-top: 6px;">
+                Notice the shape of Step 1 → Step 2: identify <i>first</i>, then use that identity to know what to look for. That two-step reasoning is exactly what "agentic" means — and it's what we're about to define properly.
+            </p>
+        </div>
+    </section>
+
+    <!-- 4. WHAT IS AN AGENT -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Concepts</div>
+        <h2>What actually makes something "agentic"?</h2>
+        <div class="body">
+            <div class="card violet">
+                <h3>It's not just "calling an LLM"</h3>
+                <p>A single prompt → single response is <b>not</b> an agent. It's a function call.</p>
+            </div>
+            <ul class="points">
+                <li><span class="bullet">✓</span><div>An <b>agent</b> exists when one model's output <b>changes what happens next</b> — a different prompt, a different tool, a different path</div></li>
+                <li><span class="bullet">✓</span><div>In SneakerLens: Step 1 identifies <code>"Nike Air Jordan 1"</code> → that exact string gets <b>woven into</b> Step 2's system prompt, changing what Step 2 looks for</div></li>
+                <li><span class="bullet">✓</span><div>That's the whole trick. No framework magic — just code-controlled branching driven by a prior LLM call's output</div></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 5. ESCALATION LADDER -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Concepts</div>
+        <h2>Three tiers — only escalate when you actually need to</h2>
+        <div class="ladder">
+            <div class="tier-card tier-1">
+                <div class="tier-num">1</div>
+                <div>
+                    <div class="tier-title">Single LLM call</div>
+                    <div class="tier-trigger">You know exactly what to ask, and one request gives you everything you need — no follow-up decisions required.</div>
+                    <span class="tier-example">e.g. classify, summarize, extract a field, answer a question</span>
+                </div>
+            </div>
+            <div class="ladder-arrow">↓ escalate only if step 1 isn't enough</div>
+            <div class="tier-card tier-2">
+                <div class="tier-num">2</div>
+                <div>
+                    <div class="tier-title">Workflow (code-orchestrated)</div>
+                    <div class="tier-trigger">Multiple steps are needed, but <b>you</b> already know the order and logic ahead of time — the model doesn't need to "decide" anything about the flow.</div>
+                    <span class="tier-example">e.g. validate input → call LLM → save to DB → send a notification</span>
+                </div>
+            </div>
+            <div class="ladder-arrow">↓ escalate only if the next step's logic genuinely depends on a prior LLM result</div>
+            <div class="tier-card tier-3">
+                <div class="tier-num">3</div>
+                <div>
+                    <div class="tier-title">Agent</div>
+                    <div class="tier-trigger">One step's <b>output</b> changes <b>what you ask</b> in the next step — not just what data you pass, but the actual question/prompt itself.</div>
+                    <span class="tier-example">SneakerLens: Step 1 says "Air Jordan 1" → that string is woven into Step 2's system prompt, changing what it looks for</span>
+                </div>
+            </div>
+        </div>
+        <p style="text-align:center; color:var(--muted-2); margin-top: 16px;">
+            Most "agent" demos online are actually Tier 1 or 2 wearing a fancier name. The real signal is whether the <i>question changes</i>, not just the data.
+        </p>
+    </section>
+
+    <!-- 5b. SHOULD YOU EVEN BUILD AN AGENT -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Concepts</div>
+        <h2>Before reaching for Tier 3, check all four</h2>
+        <div class="checklist-grid">
+            <div class="check-card">
+                <div class="q">🧩 Complexity</div>
+                <div class="a">Is the task genuinely multi-step and hard to fully specify in advance? ("Turn this design doc into a PR" — yes. "Extract the title from this PDF" — no, that's Tier 1.)</div>
+            </div>
+            <div class="check-card">
+                <div class="q">💰 Value</div>
+                <div class="a">Does the outcome justify the extra cost and latency? Agents are slower and pricier than a single call — that has to be worth it.</div>
+            </div>
+            <div class="check-card">
+                <div class="q">🎯 Viability</div>
+                <div class="a">Is the model actually capable at this specific task type? Sneaker authentication leans on strong vision + domain knowledge — Gemini can do it. Not every task is a good fit yet.</div>
+            </div>
+            <div class="check-card">
+                <div class="q">🛟 Cost of error</div>
+                <div class="a">Can mistakes be caught and recovered from? Tests, human review, rollback. If a wrong answer is expensive and silent, that's a reason to stay simpler.</div>
+            </div>
+        </div>
+        <p style="text-align:center; color:var(--muted-2); margin-top: 16px;">
+            If the answer to <b>any one</b> of these is "no," stay at a simpler tier — a workflow or a single call will serve you better than an agent.
+        </p>
+    </section>
+
+    <!-- 6. MULTIMODAL -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Concepts</div>
+        <h2>Multimodal: not just text in, text out</h2>
+        <div class="body">
+            <div class="grid2">
+                <div class="card">
+                    <h3>What it means here</h3>
+                    <p>Gemini 2.5 Flash takes <b>images + text in the same request</b>. No separate OCR step, no separate vision model glued on with string parsing.</p>
+                    <p>We send up to 4 photos (top / side / sole / label) as <code>Part.fromBytes()</code> alongside the prompt text — one request, native understanding of both.</p>
+                </div>
+                <div class="card">
+                    <h3>Why it matters for this use case</h3>
+                    <p>Authentication is inherently visual: stitching density, font kerning on logos, sole texture — things a human expert <i>looks at</i>, not reads.</p>
+                    <p>A text-only LLM literally cannot do this task. Multimodal isn't a nice-to-have here — it's the entire premise.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. HYBRID ARCHITECTURE -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Concepts</div>
+        <h2>Hybrid: local model + cloud LLM</h2>
+        <div class="body">
+            <ul class="points">
+                <li><span class="bullet">→</span><div><b>The idea:</b> not every check needs a $$ multimodal LLM call. A cheap, fast, local model can pre-filter before the expensive call happens</div></li>
+                <li><span class="bullet">→</span><div>In SneakerLens: a local <b>ResNet18 (ImageNet)</b> classifier checks "is this even a shoe?" <b>before</b> Gemini is called at all</div></li>
+                <li><span class="bullet">→</span><div>Cost asymmetry: local inference ≈ free + ~0.2s. A rejected Gemini call still would've cost tokens + 5-10s of latency</div></li>
+            </ul>
+            <div class="card green" style="margin-top: 10px;">
+                <h3>When to reach for this pattern</h3>
+                <p>Whenever a cheap signal can reject obviously-bad input before your expensive step runs: image quality checks, language detection, profanity filters, "is this even on-topic" gates.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8. WHEN TO AVOID HYBRID -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Concepts</div>
+        <h2>When to avoid the hybrid pattern</h2>
+        <div class="body">
+            <div class="grid2">
+                <div class="card red">
+                    <h3>Skip it when…</h3>
+                    <ul style="padding-left: 18px;">
+                        <li>Traffic volume is low — the engineering cost of running a second model outweighs savings</li>
+                        <li>The "cheap" model needs constant retraining/tuning to stay accurate — now you have two ML systems to maintain</li>
+                        <li>Latency budget doesn't allow a sequential local-then-cloud hop</li>
+                    </ul>
+                </div>
+                <div class="card green">
+                    <h3>Use it when…</h3>
+                    <ul style="padding-left: 18px;">
+                        <li>A pretrained, off-the-shelf model already solves your filter (like ImageNet for "is this a shoe")</li>
+                        <li>You expect meaningful volume of bad/abusive input</li>
+                        <li>Cost-per-call on the expensive step is high enough to justify the guardrail</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 9. DEMO ARCHITECTURE -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Architecture</div>
+        <h2>SneakerLens: the full pipeline</h2>
+        <div class="body">
+            <div class="arch-row">
+                <div class="arch-box"><div class="label">Input</div><div class="name">📷 1–4 Photos</div></div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box local"><div class="label">Step 0 · Local</div><div class="name">ResNet18</div><div class="meta">"Is this a shoe?" · ~0.2s · free</div></div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box cloud"><div class="label">Step 1 · Gemini</div><div class="name">Identify</div><div class="meta">Brand, model, colorway, year</div></div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-box cloud"><div class="label">Step 2 · Gemini</div><div class="name">Authenticate</div><div class="meta">Verdict, condition, resale (₹)</div></div>
+            </div>
+            <p style="text-align:center; color: var(--muted-2); margin-top: 20px;">
+                Step 1's output (e.g. <code>"Air Jordan 1"</code>) is woven into Step 2's <b>system prompt</b> — that's the agentic part.
+            </p>
+        </div>
+    </section>
+
+    <!-- 10. TECH STACK -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Architecture</div>
+        <h2>The Java stack, end to end</h2>
+        <div class="body">
+            <div class="grid3">
+                <div class="card">
+                    <h3>🌱 Spring Boot 3.4</h3>
+                    <p>Web MVC + Thymeleaf for server-rendered UI. JPA + MariaDB for users &amp; analysis history. HttpSession for auth.</p>
+                </div>
+                <div class="card">
+                    <h3>🤖 Gemini Calls</h3>
+                    <p><code>com.google.genai</code> SDK directly (API key, not Vertex). <code>spring-ai-model</code>'s <code>BeanOutputConverter</code> for structured JSON output.</p>
+                </div>
+                <div class="card">
+                    <h3>🧠 Local Model</h3>
+                    <p>DJL (Deep Java Library) + PyTorch engine running a pretrained ResNet18 — pure Java, no Python sidecar process.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 11. CODE SWITCH: Domain Models -->
+    <section class="slide code-switch">
+        <div class="badge">💻 Switch to VS Code</div>
+        <div class="icon">📦</div>
+        <h1>The domain models</h1>
+        <p class="hint">Records as the contract Gemini's JSON has to match — <code>@JsonPropertyDescription</code> becomes the schema sent to the model</p>
+        <div class="file-path">model/SneakerIdentity.java · model/AuthenticityVerdict.java</div>
+    </section>
+
+    <!-- 12. CODE SWITCH: PromptBuilder -->
+    <section class="slide code-switch">
+        <div class="badge">💻 Switch to VS Code</div>
+        <div class="icon">✍️</div>
+        <h1>The dynamic prompt</h1>
+        <p class="hint">This is where the "agent" actually happens — Step 1's identity gets formatted directly into Step 2's system prompt string</p>
+        <div class="file-path">service/PromptBuilder.java</div>
+    </section>
+
+    <!-- 13. CODE SWITCH: Agent Service -->
+    <section class="slide code-switch">
+        <div class="badge">💻 Switch to VS Code</div>
+        <div class="icon">🔗</div>
+        <h1>The two-step chain</h1>
+        <p class="hint">Guardrail → Step 1 → Step 2. Plus the retry-with-backoff wrapper for Gemini's transient 503s</p>
+        <div class="file-path">service/SneakerAgentService.java</div>
+    </section>
+
+    <!-- 14. CODE SWITCH: Guardrail -->
+    <section class="slide code-switch">
+        <div class="badge">💻 Switch to VS Code</div>
+        <div class="icon">🛡️</div>
+        <h1>The local guardrail</h1>
+        <p class="hint">DJL Criteria builder loading a pretrained ResNet18 — runs once at startup, predicts per-upload at request time</p>
+        <div class="file-path">service/ShoeGuardrailService.java</div>
+    </section>
+
+    <!-- 15. DEMO SLIDE -->
+    <section class="slide demo">
+        <div class="badge">🎬 Live Demo</div>
+        <h1>Let's break it on stage</h1>
+        <p class="hint" style="color:var(--muted-2); font-size: 20px; max-width: 600px; margin-top: 14px;">
+            Login → upload real sneaker photos → watch Step 0 / 1 / 2 run live → check the admin dashboard
+        </p>
+    </section>
+
+    <!-- 16. LESSONS: Array bug -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Lessons Learned</div>
+        <h2>Bug #1 — Gemini returned an array, not an object</h2>
+        <div class="body">
+            <div class="card bug-card">
+                <h3>What happened</h3>
+                <p>Uploaded photos contained two visually distinct sneakers. Gemini "helpfully" described both — as a JSON <b>array</b> of two identity objects. Our schema expected exactly one. Jackson threw <code>MismatchedInputException</code> and the whole analysis crashed.</p>
+                <p class="fix"><b>Fix:</b> explicit prompt instruction ("always one object, never an array") + defensive code that unwraps an array and takes the first element rather than crashing.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 17. LESSONS: refresh bug -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Lessons Learned</div>
+        <h2>Bug #2 — refresh kept re-running the whole analysis</h2>
+        <div class="body">
+            <div class="card bug-card">
+                <h3>What happened</h3>
+                <p>The POST handler returned the result view directly. Browser's last action stayed a <code>POST</code> — hitting refresh (or even our own "reload" button) silently resubmitted the form, re-running both Gemini calls.</p>
+                <p class="fix"><b>Fix:</b> classic POST → Redirect → GET. Then went further: AJAX <code>fetch()</code> submission so the page never navigates at all — uploaded photos survive across errors and re-analysis too.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 18. LESSONS: model drift -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Lessons Learned</div>
+        <h2>Bug #3 — the model underneath you can just... change</h2>
+        <div class="body">
+            <div class="card bug-card">
+                <h3>What happened</h3>
+                <p><code>gemini-2.0-flash</code> started returning <b>404 — model no longer available</b> mid-build, with no code change on our side. A different model also briefly hit a free-tier quota of <code>limit: 0</code>.</p>
+                <p>This isn't a Gemini-specific quirk — it's the industry norm. <b>OpenAI</b> deprecates and retires model snapshots constantly (<code>gpt-4-0314</code>, <code>gpt-4-32k</code>, multiple <code>preview</code> tags gone within months). Anthropic and Google do the same on a slower cadence.</p>
+                <p class="fix"><b>Fix:</b> moved to <code>gemini-2.5-flash</code>, added retry-with-exponential-backoff for transient <code>503</code>/<code>429</code>s, and — the real lesson — <b>never hardcode a model ID as a fact you can forget about.</b> Treat it as a config value you'll revisit, the same way you'd treat a third-party API version string.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 19. TOKEN ECONOMICS -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Cost &amp; Economics</div>
+        <h2>What does one analysis actually cost?</h2>
+        <div class="body">
+            <div class="grid3">
+                <div class="card">
+                    <div class="stat-label">Step 0 · Local</div>
+                    <div class="stat-big" style="color:var(--green);">₹0</div>
+                    <p>Runs on your own CPU. No API cost, ~0.2-0.7s.</p>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Step 1 · Identify</div>
+                    <div class="stat-big" style="color:var(--violet-light);">~1.5-3K</div>
+                    <p>tokens (input-heavy — images dominate the cost)</p>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Step 2 · Authenticate</div>
+                    <div class="stat-big" style="color:var(--violet-light);">~2-4K</div>
+                    <p>tokens (more output — evidence, verdict, resale)</p>
+                </div>
+            </div>
+            <p style="text-align:center; color:var(--muted-2); margin-top: 10px;">Shown live in the app's own "Agent Token Usage" panel — built so the audience can see the real cost, not a guess.</p>
+        </div>
+    </section>
+
+    <!-- 19b. HOW IMAGES BECOME TOKENS -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Cost &amp; Economics</div>
+        <h2>How does an image become "tokens"?</h2>
+        <div class="body">
+            <ul class="points">
+                <li><span class="bullet">→</span><div>Gemini tiles each image into fixed chunks — roughly <b>258 tokens per tile</b> for images ≤384×384; bigger photos get split into multiple tiles. A typical phone photo can run 1-2 tiles.</div></li>
+                <li><span class="bullet">→</span><div>Today, SneakerLens sends raw bytes inline via <code>Part.fromBytes()</code> — JSON over HTTP requires this to travel as <b>base64</b> on the wire (~33% size inflation over raw bytes).</div></li>
+                <li><span class="bullet">→</span><div><b>The expensive mistake:</b> we send all 4 photos in Step 1, <i>then send the same 4 photos again</i> in Step 2 — full image-token cost paid twice for identical bytes.</div></li>
+            </ul>
+            <div class="card violet">
+                <h3>The fix we didn't ship (yet)</h3>
+                <p>Gemini's <b>Files API</b> lets you upload media once, get back a file reference, and pass that reference into multiple <code>generateContent</code> calls (valid 48h) — pay the upload cost once, not per step.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 19c. URI REFERENCE VS BASE64 -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Cost &amp; Economics</div>
+        <h2>Inline bytes vs. URI reference — does it matter?</h2>
+        <div class="body">
+            <table class="compare">
+                <tr><th>Approach</th><th>How it works</th><th>Tradeoff</th></tr>
+                <tr><td><b>Inline base64</b><br><span style="color:var(--muted)">(what we do today)</span></td><td>Image bytes embedded directly in the JSON request body</td><td class="no">Simple, but re-sent on every call — bigger payloads, more latency, no reuse</td></tr>
+                <tr><td><b>Files API reference</b><br><span style="color:var(--muted)">(Gemini Developer API)</span></td><td>Upload once → get a <code>file://</code> handle → reference it in N calls</td><td class="yes">Upload cost paid once across our 2-step chain; smaller request bodies</td></tr>
+                <tr><td><b>GCS URI</b><br><span style="color:var(--muted)">(Vertex AI only)</span></td><td>Point Gemini at <code>gs://bucket/photo.jpg</code> directly</td><td class="yes">No re-upload at all if the file already lives in GCS; needs Vertex AI, not the plain API key</td></tr>
+                <tr><td><b>S3 URI</b></td><td>Not natively supported by Gemini</td><td class="no">Google's stack only understands GCS — an S3 file has to be copied/proxied first</td></tr>
+            </table>
+            <p style="text-align:center; color:var(--muted-2); margin-top: 14px;">For a 2-step agent chain reusing the same photos, Files API is the easy win — it's a same-vendor, same-API-key change.</p>
+        </div>
+    </section>
+
+    <!-- 19d. PRODUCTION ARCHITECTURE -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Going to Production</div>
+        <h2>What this looks like as a real GCP deployment</h2>
+        <div class="stack">
+            <div class="stack-row">
+                <div class="svc-box edge"><div class="name">🌐 Browser / Mobile</div></div>
+            </div>
+            <div class="stack-arrow">↓ <span class="tls-tag">TLS 1.3</span></div>
+            <div class="stack-row">
+                <div class="svc-box edge"><div class="name">Cloud Load Balancer</div><div class="meta">TLS termination · Cloud Armor (WAF/DDoS)</div></div>
+            </div>
+            <div class="stack-arrow">↓ <span class="tls-tag">HTTPS</span></div>
+            <div class="stack-row">
+                <div class="svc-box compute"><div class="name">Cloud Run</div><div class="meta">Spring Boot container · autoscaled · stateless instances</div></div>
+            </div>
+            <div class="stack-arrow">↓</div>
+            <div class="stack-row">
+                <div class="svc-box data"><div class="name">Cloud SQL</div><div class="meta">MySQL/MariaDB · users + analyses</div></div>
+                <div class="svc-box data"><div class="name">Memorystore (Redis)</div><div class="meta">Spring Session store · replaces in-memory HttpSession</div></div>
+                <div class="svc-box data"><div class="name">Cloud Storage (GCS)</div><div class="meta">Uploaded sneaker photos</div></div>
+                <div class="svc-box secret"><div class="name">Secret Manager</div><div class="meta">Gemini API key · DB credentials</div></div>
+            </div>
+            <div class="stack-arrow">↓ <span class="tls-tag">HTTPS</span></div>
+            <div class="stack-row">
+                <div class="svc-box ext"><div class="name">🤖 Gemini API</div><div class="meta">External call, over the public internet</div></div>
+            </div>
+        </div>
+        <p style="text-align:center; color:var(--muted-2); margin-top: 4px;">
+            Key change from today's demo: <b>Redis-backed sessions</b> — our current <code>HttpSession</code> lives in one JVM's memory and breaks the moment Cloud Run scales past 1 instance.
+        </p>
+    </section>
+
+    <!-- 19e. ENCRYPTION: REST VS TRANSIT -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Going to Production</div>
+        <h2>Encryption: at rest vs. in transit</h2>
+        <div class="body">
+            <div class="grid2">
+                <div class="card green">
+                    <h3>🔒 In transit</h3>
+                    <p>Data moving <i>between</i> systems — browser↔LB, LB↔Cloud Run, Cloud Run↔Cloud SQL, Cloud Run↔Gemini.</p>
+                    <ul style="padding-left: 18px;">
+                        <li>TLS everywhere, no exceptions — including internal hops</li>
+                        <li>Cloud SQL: enforce SSL or use the <b>Cloud SQL Auth Proxy</b> (mTLS, no manual cert management)</li>
+                        <li>Gemini calls already go over HTTPS by default — nothing extra to configure</li>
+                    </ul>
+                </div>
+                <div class="card violet">
+                    <h3>🗄️ At rest</h3>
+                    <p>Data sitting <i>still</i> — on disk in Cloud SQL, objects in GCS, Redis snapshots.</p>
+                    <ul style="padding-left: 18px;">
+                        <li>Google-managed encryption is <b>on by default</b> for Cloud SQL, GCS, Memorystore — no extra setup</li>
+                        <li>Stricter compliance (e.g. PII, finance)? Use <b>CMEK</b> — Customer-Managed Encryption Keys via Cloud KMS, so you control key rotation/revocation</li>
+                        <li>Sneaker photos are low-sensitivity, but user phone numbers in <code>users</code> table are exactly the kind of field CMEK is meant for</li>
+                    </ul>
+                </div>
+            </div>
+            <p style="text-align:center; color:var(--muted-2); margin-top: 6px;">
+                Rule of thumb: <b>in transit</b> is about <i>who can intercept</i>; <b>at rest</b> is about <i>who can read the disk</i> if they get physical/storage-level access.
+            </p>
+        </div>
+    </section>
+
+    <!-- 19f. ENCRYPTED DATA + LLM CALLS -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Going to Production</div>
+        <h2>What if the data going to the LLM is encrypted?</h2>
+        <div class="body">
+            <div class="card red">
+                <h3>The hard constraint: LLMs need plaintext</h3>
+                <p>There's no shortcut here — Gemini (or any model) cannot reason over ciphertext. Homomorphic encryption + LLM inference is still research, not something you ship. If the model needs to "see" the data, <b>it has to be decrypted first.</b></p>
+            </div>
+            <ul class="points">
+                <li><span class="bullet">→</span><div><b>So where does decryption happen?</b> Inside Cloud Run, in memory, right before the Gemini call — using a key pulled from <b>Cloud KMS / Secret Manager</b>. Never decrypt earlier, never persist the plaintext, never log it.</div></li>
+                <li><span class="bullet">→</span><div>That makes <b>the LLM call itself a deliberate decryption boundary</b> — not a side effect you discover later in a security review.</div></li>
+                <li><span class="bullet">→</span><div><b>Important caveat:</b> TLS only protects data in transit <i>to</i> Gemini's servers — once it arrives, Google's infrastructure sees plaintext to actually run inference. That's a different trust boundary than "encrypted everywhere," and worth calling out explicitly to stakeholders.</div></li>
+            </ul>
+            <div class="card violet">
+                <h3>If true confidentiality is non-negotiable</h3>
+                <p>Minimize what you send (crop/redact anything not needed for the task), use enterprise terms with data-retention guarantees (Vertex AI vs. default consumer API), or self-host an open model inside your own VPC so plaintext never leaves your trust boundary at all.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 20. TAKEAWAYS -->
+    <section class="slide">
+        <div class="kicker"><span class="dot"></span>Takeaways</div>
+        <h2>Three things to remember</h2>
+        <div class="body">
+            <ul class="points">
+                <li><span class="bullet">1</span><div><b>"Agent" = output reshapes the next step.</b> Don't reach for agent frameworks when a single call or a fixed pipeline does the job.</div></li>
+                <li><span class="bullet">2</span><div><b>Hybrid local+cloud is a cost pattern, not a buzzword.</b> A cheap pretrained classifier can save real money by gating an expensive multimodal call.</div></li>
+                <li><span class="bullet">3</span><div><b>Java is a perfectly good place to build this.</b> Spring AI + the official Gemini SDK + DJL — no Python required anywhere in this stack.</div></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 21. Q&A -->
+    <section class="slide title">
+        <div class="emoji">🙋</div>
+        <h1>Questions?</h1>
+    </section>
+
+</div>
+
+<div class="footer-meta">
+    <span><a href="/" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--muted);">hmalaya.dev</a> — Building Multimodal AI Agents with Java</span>
+    <span class="nav-hint">
+        <span><kbd>←</kbd> <kbd>→</kbd> navigate</span>
+        <span><kbd>F</kbd> fullscreen</span>
+    </span>
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    let current = 0;
+
+    function render() {
+        slides.forEach((s, i) => s.classList.toggle('active', i === current));
+        document.getElementById('counter').textContent = (current + 1) + ' / ' + slides.length;
+        document.getElementById('progressTrack').style.width = ((current + 1) / slides.length * 100) + '%';
+    }
+
+    function next() { if (current < slides.length - 1) { current++; render(); } }
+    function prev() { if (current > 0) { current--; render(); } }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { next(); e.preventDefault(); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { prev(); e.preventDefault(); }
+        else if (e.key === 'Home') { current = 0; render(); }
+        else if (e.key === 'End') { current = slides.length - 1; render(); }
+        else if (e.key.toLowerCase() === 'f') {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        }
+    });
+
+    // Click left/right half of screen to navigate too
+    document.getElementById('deck').addEventListener('click', (e) => {
+        const half = window.innerWidth / 2;
+        if (e.clientX > half) next(); else prev();
+    });
+
+    render();
+</script>
+
+</body>
+</html>

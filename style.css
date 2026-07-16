@@ -110,6 +110,23 @@ a:focus-visible {
   display: block;
 }
 
+.talk-links {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
+.talk-links a {
+  color: var(--dim);
+  border-bottom: 1px solid transparent;
+}
+
+.talk-links a:hover,
+.talk-links a:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 footer {
   color: var(--dim);
   font-size: 0.8rem;
