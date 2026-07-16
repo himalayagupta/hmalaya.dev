@@ -1,0 +1,115 @@
+:root {
+  --bg: #0d0d0d;
+  --fg: #e8e8e3;
+  --dim: #8a8a85;
+  --accent: #7fdc9f;
+  --mono: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 16px;
+  line-height: 1.6;
+  padding: 6rem 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+main {
+  width: 100%;
+  max-width: 640px;
+}
+
+.prompt {
+  color: var(--accent);
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 400;
+  margin: 0 0 0.25rem 0;
+}
+
+.tagline {
+  color: var(--dim);
+  margin: 0 0 2.5rem 0;
+}
+
+section {
+  margin-bottom: 2.5rem;
+}
+
+h2 {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--dim);
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.75rem 0;
+}
+
+h2::before {
+  content: "# ";
+  color: var(--accent);
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  margin-bottom: 0.5rem;
+}
+
+a {
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--dim);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.talk {
+  margin-bottom: 1rem;
+}
+
+.talk-title {
+  color: var(--fg);
+}
+
+.talk-meta {
+  color: var(--dim);
+  font-size: 0.85rem;
+  display: block;
+}
+
+footer {
+  color: var(--dim);
+  font-size: 0.8rem;
+  margin-top: 3rem;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 3rem 1.25rem;
+  }
+}
